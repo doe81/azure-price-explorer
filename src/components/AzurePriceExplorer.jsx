@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Download, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, Download, ChevronLeft, ChevronRight, Loader } from 'lucide-react';
 import {
   Card,
   CardContent,
@@ -15,6 +15,33 @@ import {
 } from "../components/ui/dropdown-menu";
 import { Button } from "../components/ui/button";
 
+const CURRENCIES = [
+  { code: 'USD', name: 'US Dollar' },
+  { code: 'EUR', name: 'Euro' },
+  { code: 'AUD', name: 'Australian Dollar' },
+  { code: 'BRL', name: 'Brazilian Real' },
+  { code: 'GBP', name: 'British Pound' },
+  { code: 'CAD', name: 'Canadian Dollar' },
+  { code: 'CNY', name: 'Chinese Yuan' },
+  { code: 'DKK', name: 'Danish Krone' },
+  { code: 'INR', name: 'Indian Rupee' },
+  { code: 'JPY', name: 'Japanese Yen' },
+  { code: 'KRW', name: 'Korean Won' },
+  { code: 'NZD', name: 'New Zealand Dollar' },
+  { code: 'NOK', name: 'Norwegian Krone' },
+  { code: 'RUB', name: 'Russian Ruble' },
+  { code: 'SEK', name: 'Swedish Krona' },
+  { code: 'CHF', name: 'Swiss Franc' },
+  { code: 'TWD', name: 'Taiwan Dollar' }
+];
+
+const REGIONS = [
+  { code: 'westeurope', name: 'West Europe' },
+  { code: 'northeurope', name: 'North Europe' },
+  { code: 'eastus', name: 'East US' },
+  { code: 'westus', name: 'West US' }
+];
+
 const AzurePriceExplorer = () => {
   const [prices, setPrices] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -22,39 +49,71 @@ const AzurePriceExplorer = () => {
   const [categories, setCategories] = useState([]);
   const [selectedCategories, setSelectedCategories] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCurrency, setSelectedCurrency] = useState('USD');
+  const [selectedRegion, setSelectedRegion] = useState('westeurope');
   
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [totalCount, setTotalCount] = useState(0);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   
-  useEffect(() => {
-    const fetchPrices = async () => {
-      try {
-        const response = await fetch('/api/prices');
-        
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
+  const buildApiUrl = (skip = 0) => {
+    // Use relative URL to our API function
+    const params = new URLSearchParams({
+      currency: selectedCurrency,
+      region: selectedRegion,
+      skip: skip.toString(),
+      top: '100'
+    });
+
+    return `/api/prices?${params.toString()}`;
+  };
+
+  const fetchPrices = async (skip = 0, accumulate = false) => {
+    try {
+      setIsLoadingMore(true);
+      const response = await fetch(buildApiUrl(skip));
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      
+      // Update prices based on whether we're accumulating or starting fresh
+      setPrices(prevPrices => {
+        if (accumulate) {
+          return [...prevPrices, ...data.Items];
         }
-        
-        const data = await response.json();
-        console.log('API Response:', data); // For debugging
-        
-        setPrices(data.Items || []);
-        
+        return data.Items || [];
+      });
+      
+      // Extract unique categories from the data
+      if (!accumulate) {
         const uniqueCategories = [...new Set((data.Items || []).map(item => item.serviceFamily))];
         setCategories(uniqueCategories);
-        
-        setLoading(false);
-      } catch (err) {
-        console.error('Fetch error:', err);
-        setError(err.message);
-        setLoading(false);
+        setTotalCount(data.Count || 0);
       }
-    };
-    
-    fetchPrices();
-  }, []);
-  
+      
+      setError(null);
+    } catch (err) {
+      console.error('Fetch error:', err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
+      setIsLoadingMore(false);
+    }
+  };
+
+  // Initial load
+  useEffect(() => {
+    setLoading(true);
+    setPrices([]);
+    setCurrentPage(1);
+    fetchPrices(0, false);
+  }, [selectedCurrency, selectedRegion]);
+
   // Filter and search logic
   const filteredPrices = prices.filter(price => {
     const matchesCategories = selectedCategories.length === 0 || 
@@ -68,10 +127,12 @@ const AzurePriceExplorer = () => {
     return matchesCategories && matchesSearch;
   });
 
-  // Pagination logic
-  const totalPages = Math.ceil(filteredPrices.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const paginatedPrices = filteredPrices.slice(startIndex, startIndex + itemsPerPage);
+  // Load more data when scrolling near bottom
+  const handleLoadMore = () => {
+    if (!isLoadingMore && prices.length < totalCount) {
+      fetchPrices(prices.length, true);
+    }
+  };
 
   const toggleCategory = (category) => {
     setSelectedCategories(prev => 
@@ -79,91 +140,60 @@ const AzurePriceExplorer = () => {
         ? prev.filter(c => c !== category)
         : [...prev, category]
     );
-    setCurrentPage(1); // Reset to first page when filters change
   };
-
-  // Export functions
-  const exportToCSV = () => {
-    const headers = ['Product', 'Category', 'SKU', 'Price', 'Unit'];
-    const csvContent = [
-      headers.join(','),
-      ...filteredPrices.map(price => [
-        `"${price.productName}"`,
-        `"${price.serviceFamily}"`,
-        `"${price.skuName}"`,
-        price.retailPrice,
-        `"${price.unitOfMeasure}"`
-      ].join(','))
-    ].join('\n');
-
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = 'azure_prices.csv';
-    link.click();
-  };
-
-  const exportToExcel = () => {
-    const headers = ['Product', 'Category', 'SKU', 'Price', 'Unit'];
-    let excelContent = '<table>';
-    
-    // Add headers
-    excelContent += '<tr>' + headers.map(header => `<th>${header}</th>`).join('') + '</tr>';
-    
-    // Add data rows
-    filteredPrices.forEach(price => {
-      excelContent += '<tr>';
-      excelContent += `<td>${price.productName}</td>`;
-      excelContent += `<td>${price.serviceFamily}</td>`;
-      excelContent += `<td>${price.skuName}</td>`;
-      excelContent += `<td>${price.retailPrice}</td>`;
-      excelContent += `<td>${price.unitOfMeasure}</td>`;
-      excelContent += '</tr>';
-    });
-    
-    excelContent += '</table>';
-    
-    const blob = new Blob([excelContent], { type: 'application/vnd.ms-excel' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = 'azure_prices.xls';
-    link.click();
-  };
-
-  if (loading) return (
-    <div className="flex items-center justify-center h-screen">
-      <p className="text-lg">Loading Azure prices...</p>
-    </div>
-  );
-
-  if (error) return (
-    <div className="flex items-center justify-center h-screen">
-      <p className="text-red-500">Error: {error}</p>
-    </div>
-  );
 
   return (
     <div className="p-6">
       <Card className="mb-6">
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Azure Price Explorer</CardTitle>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="ml-4">
-                <Download className="h-4 w-4 mr-2" />
-                Export
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent>
-              <DropdownMenuItem onClick={exportToCSV}>
-                Export to CSV
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={exportToExcel}>
-                Export to Excel
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <div className="flex gap-4">
+            {/* Currency Selector */}
+            <select
+              className="px-3 py-2 border rounded-md"
+              value={selectedCurrency}
+              onChange={(e) => setSelectedCurrency(e.target.value)}
+            >
+              {CURRENCIES.map(currency => (
+                <option key={currency.code} value={currency.code}>
+                  {currency.code} - {currency.name}
+                </option>
+              ))}
+            </select>
+
+            {/* Region Selector */}
+            <select
+              className="px-3 py-2 border rounded-md"
+              value={selectedRegion}
+              onChange={(e) => setSelectedRegion(e.target.value)}
+            >
+              {REGIONS.map(region => (
+                <option key={region.code} value={region.code}>
+                  {region.name}
+                </option>
+              ))}
+            </select>
+
+            {/* Export Button */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="ml-4">
+                  <Download className="h-4 w-4 mr-2" />
+                  Export
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuItem onClick={() => exportToCSV(filteredPrices)}>
+                  Export to CSV
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => exportToExcel(filteredPrices)}>
+                  Export to Excel
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </CardHeader>
+
         <CardContent>
           {/* Search Bar */}
           <div className="relative mb-6">
@@ -197,71 +227,70 @@ const AzurePriceExplorer = () => {
             </div>
           </div>
 
-          {/* Price Table */}
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse">
-              <thead>
-                <tr className="bg-gray-50">
-                  <th className="p-2 text-left border">Product</th>
-                  <th className="p-2 text-left border">Category</th>
-                  <th className="p-2 text-left border">SKU</th>
-                  <th className="p-2 text-left border">Price</th>
-                  <th className="p-2 text-left border">Unit</th>
-                </tr>
-              </thead>
-              <tbody>
-                {paginatedPrices.map((price, index) => (
-                  <tr key={index} className="hover:bg-gray-50">
-                    <td className="p-2 border">{price.productName}</td>
-                    <td className="p-2 border">{price.serviceFamily}</td>
-                    <td className="p-2 border">{price.skuName}</td>
-                    <td className="p-2 border">${price.retailPrice}</td>
-                    <td className="p-2 border">{price.unitOfMeasure}</td>
+          {/* Loading State */}
+          {loading ? (
+            <div className="flex items-center justify-center p-8">
+              <Loader className="h-8 w-8 animate-spin" />
+              <span className="ml-2">Loading prices...</span>
+            </div>
+          ) : error ? (
+            <div className="text-red-500 p-4">Error: {error}</div>
+          ) : (
+            /* Price Table */
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr className="bg-gray-50">
+                    <th className="p-2 text-left border">Product</th>
+                    <th className="p-2 text-left border">Category</th>
+                    <th className="p-2 text-left border">SKU</th>
+                    <th className="p-2 text-left border">Price</th>
+                    <th className="p-2 text-left border">Unit</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {filteredPrices.map((price, index) => (
+                    <tr key={index} className="hover:bg-gray-50">
+                      <td className="p-2 border">{price.productName}</td>
+                      <td className="p-2 border">{price.serviceFamily}</td>
+                      <td className="p-2 border">{price.skuName}</td>
+                      <td className="p-2 border">{price.retailPrice} {selectedCurrency}</td>
+                      <td className="p-2 border">{price.unitOfMeasure}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </CardContent>
         
-        {/* Pagination Controls */}
-        <CardFooter className="flex items-center justify-between">
-          <div className="text-sm text-gray-500">
-            Showing {startIndex + 1} to {Math.min(startIndex + itemsPerPage, filteredPrices.length)} of {filteredPrices.length} results
+        {/* Load More Button */}
+        {!loading && prices.length < totalCount && (
+          <CardFooter className="flex justify-center">
+            <Button
+              variant="outline"
+              onClick={handleLoadMore}
+              disabled={isLoadingMore}
+            >
+              {isLoadingMore ? (
+                <>
+                  <Loader className="h-4 w-4 mr-2 animate-spin" />
+                  Loading...
+                </>
+              ) : (
+                'Load More'
+              )}
+            </Button>
+          </CardFooter>
+        )}
+
+        {/* Results Count */}
+        <CardFooter className="flex justify-between text-sm text-gray-500">
+          <div>
+            Showing {filteredPrices.length} of {totalCount} prices
           </div>
-          <div className="flex items-center space-x-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-              disabled={currentPage === 1}
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <span className="text-sm">
-              Page {currentPage} of {totalPages}
-            </span>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-              disabled={currentPage === totalPages}
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-            <select
-              className="ml-2 p-1 border rounded"
-              value={itemsPerPage}
-              onChange={(e) => {
-                setItemsPerPage(Number(e.target.value));
-                setCurrentPage(1);
-              }}
-            >
-              <option value="10">10 per page</option>
-              <option value="25">25 per page</option>
-              <option value="50">50 per page</option>
-              <option value="100">100 per page</option>
-            </select>
+          <div>
+            Currency: {selectedCurrency} | Region: {selectedRegion}
           </div>
         </CardFooter>
       </Card>

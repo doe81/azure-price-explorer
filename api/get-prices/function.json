@@ -1,17 +1,18 @@
 {
-    "bindings": [
-      {
-        "authLevel": "anonymous",
-        "type": "httpTrigger",
-        "direction": "in",
-        "name": "req",
-        "methods": ["get"],
-        "route": "prices"
-      },
-      {
-        "type": "http",
-        "direction": "out",
-        "name": "res"
-      }
-    ]
-  }
+  "bindings": [
+    {
+      "authLevel": "anonymous",
+      "type": "httpTrigger",
+      "direction": "in",
+      "name": "req",
+      "methods": ["get"],
+      "route": "prices",
+      "queryStringParameters": ["currency", "region", "skip", "top"]
+    },
+    {
+      "type": "http",
+      "direction": "out",
+      "name": "res"
+    }
+  ]
+}
