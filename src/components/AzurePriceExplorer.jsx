@@ -113,6 +113,122 @@ const AzurePriceExplorer = () => {
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [hoveredPrice, setHoveredPrice] = useState(null);
 
+  const buildApiUrl = useCallback((skip = 0) => {
+    const params = new URLSearchParams({
+      currency: selectedCurrency,
+      skip: skip.toString(),
+      top: '100'
+    });
+
+    if (selectedRegions.length > 0) {
+      const regionFilter = selectedRegions
+        .map(region => `armRegionName eq '${region}'`)
+        .join(' or ');
+      params.append('$filter', `(${regionFilter})`);
+    }
+
+    return `/api/prices?${params.toString()}`;
+  }, [selectedCurrency, selectedRegions]);
+
+  const fetchPrices = useCallback(async (skip = 0, accumulate = false) => {
+    try {
+      setIsLoadingMore(true);
+      const response = await fetch(buildApiUrl(skip));
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      
+      setPrices(prevPrices => {
+        if (accumulate) {
+          return [...prevPrices, ...data.Items];
+        }
+        return data.Items || [];
+      });
+      
+      if (!accumulate) {
+        const uniqueCategories = [...new Set((data.Items || []).map(item => item.serviceFamily))];
+        setCategories(uniqueCategories);
+        setTotalCount(data.Count || 0);
+      }
+      
+      setError(null);
+    } catch (err) {
+      console.error('Fetch error:', err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
+      setIsLoadingMore(false);
+    }
+  }, [buildApiUrl]);
+
+  useEffect(() => {
+    setLoading(true);
+    setPrices([]);
+    fetchPrices(0, false);
+  }, [selectedCurrency, selectedRegions, fetchPrices]);
+
+  // Add the filtered prices computation
+  const filteredPrices = prices.filter(price => {
+    const matchesCategories = selectedCategories.length === 0 || 
+      selectedCategories.includes(price.serviceFamily);
+      
+    const matchesSearch = price.productName.toLowerCase()
+      .includes(searchQuery.toLowerCase()) ||
+      price.serviceFamily.toLowerCase()
+      .includes(searchQuery.toLowerCase());
+      
+    return matchesCategories && matchesSearch;
+  });
+
+  // Add the export functions
+  const exportToCSV = (data) => {
+    const headers = ['Product', 'Category', 'SKU', 'Price', 'Unit'];
+    const csvContent = [
+      headers.join(','),
+      ...data.map(price => [
+        `"${price.productName.replace(/"/g, '""')}"`,
+        `"${price.serviceFamily.replace(/"/g, '""')}"`,
+        `"${price.skuName.replace(/"/g, '""')}"`,
+        formatPrice(price.retailPrice),
+        `"${price.unitOfMeasure.replace(/"/g, '""')}"`
+      ].join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `azure_prices_${selectedCurrency}_${selectedRegions.join('_')}.csv`;
+    link.click();
+  };
+
+  const exportToExcel = (data) => {
+    const headers = ['Product', 'Category', 'SKU', 'Price', 'Unit'];
+    let excelContent = '<table>';
+    
+    excelContent += '<tr>' + headers.map(header => `<th>${header}</th>`).join('') + '</tr>';
+    
+    data.forEach(price => {
+      excelContent += '<tr>';
+      excelContent += `<td>${price.productName.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</td>`;
+      excelContent += `<td>${price.serviceFamily.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</td>`;
+      excelContent += `<td>${price.skuName.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</td>`;
+      excelContent += `<td>${formatPrice(price.retailPrice)}</td>`;
+      excelContent += `<td>${price.unitOfMeasure.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</td>`;
+      excelContent += '</tr>';
+    });
+    
+    excelContent += '</table>';
+    
+    const blob = new Blob([excelContent], { type: 'application/vnd.ms-excel' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `azure_prices_${selectedCurrency}_${selectedRegions.join('_')}.xls`;
+    link.click();
+  };
+
   // Format price according to currency locale
   const formatPrice = (price, showFull = false) => {
     const format = CURRENCY_FORMATS[selectedCurrency];
