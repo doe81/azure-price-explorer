@@ -36,11 +36,73 @@ const CURRENCIES = [
 ];
 
 const REGIONS = [
-  { code: 'westeurope', name: 'West Europe' },
-  { code: 'northeurope', name: 'North Europe' },
-  { code: 'eastus', name: 'East US' },
-  { code: 'westus', name: 'West US' }
-];
+  { code: 'global', name: 'global', displayName: 'Global' },
+  // Africa
+  { code: 'southafricanorth', name: 'southafricanorth', displayName: '(Africa) South Africa North' },
+  { code: 'southafricawest', name: 'southafricawest', displayName: '(Africa) South Africa West' },
+  // Asia Pacific
+  { code: 'australiacentral', name: 'australiacentral', displayName: '(Asia Pacific) Australia Central' },
+  { code: 'australiacentral2', name: 'australiacentral2', displayName: '(Asia Pacific) Australia Central 2' },
+  { code: 'australiaeast', name: 'australiaeast', displayName: '(Asia Pacific) Australia East' },
+  { code: 'australiasoutheast', name: 'australiasoutheast', displayName: '(Asia Pacific) Australia Southeast' },
+  { code: 'centralindia', name: 'centralindia', displayName: '(Asia Pacific) Central India' },
+  { code: 'eastasia', name: 'eastasia', displayName: '(Asia Pacific) East Asia' },
+  { code: 'japaneast', name: 'japaneast', displayName: '(Asia Pacific) Japan East' },
+  { code: 'japanwest', name: 'japanwest', displayName: '(Asia Pacific) Japan West' },
+  { code: 'jioindiacentral', name: 'jioindiacentral', displayName: '(Asia Pacific) Jio India Central' },
+  { code: 'jioindiawest', name: 'jioindiawest', displayName: '(Asia Pacific) Jio India West' },
+  { code: 'koreacentral', name: 'koreacentral', displayName: '(Asia Pacific) Korea Central' },
+  { code: 'koreasouth', name: 'koreasouth', displayName: '(Asia Pacific) Korea South' },
+  { code: 'newzealandnorth', name: 'newzealandnorth', displayName: '(Asia Pacific) New Zealand North' },
+  { code: 'southeastasia', name: 'southeastasia', displayName: '(Asia Pacific) Southeast Asia' },
+  { code: 'southindia', name: 'southindia', displayName: '(Asia Pacific) South India' },
+  { code: 'westindia', name: 'westindia', displayName: '(Asia Pacific) West India' },
+  // Canada
+  { code: 'canadacentral', name: 'canadacentral', displayName: '(Canada) Canada Central' },
+  { code: 'canadaeast', name: 'canadaeast', displayName: '(Canada) Canada East' },
+  // Europe
+  { code: 'francecentral', name: 'francecentral', displayName: '(Europe) France Central' },
+  { code: 'francesouth', name: 'francesouth', displayName: '(Europe) France South' },
+  { code: 'germanynorth', name: 'germanynorth', displayName: '(Europe) Germany North' },
+  { code: 'germanywestcentral', name: 'germanywestcentral', displayName: '(Europe) Germany West Central' },
+  { code: 'italynorth', name: 'italynorth', displayName: '(Europe) Italy North' },
+  { code: 'northeurope', name: 'northeurope', displayName: '(Europe) North Europe' },
+  { code: 'norwayeast', name: 'norwayeast', displayName: '(Europe) Norway East' },
+  { code: 'norwaywest', name: 'norwaywest', displayName: '(Europe) Norway West' },
+  { code: 'polandcentral', name: 'polandcentral', displayName: '(Europe) Poland Central' },
+  { code: 'spaincentral', name: 'spaincentral', displayName: '(Europe) Spain Central' },
+  { code: 'swedencentral', name: 'swedencentral', displayName: '(Europe) Sweden Central' },
+  { code: 'switzerlandnorth', name: 'switzerlandnorth', displayName: '(Europe) Switzerland North' },
+  { code: 'switzerlandwest', name: 'switzerlandwest', displayName: '(Europe) Switzerland West' },
+  { code: 'uksouth', name: 'uksouth', displayName: '(Europe) UK South' },
+  { code: 'ukwest', name: 'ukwest', displayName: '(Europe) UK West' },
+  { code: 'westeurope', name: 'westeurope', displayName: '(Europe) West Europe' },
+  // Mexico
+  { code: 'mexicocentral', name: 'mexicocentral', displayName: '(Mexico) Mexico Central' },
+  // Middle East
+  { code: 'israelcentral', name: 'israelcentral', displayName: '(Middle East) Israel Central' },
+  { code: 'qatarcentral', name: 'qatarcentral', displayName: '(Middle East) Qatar Central' },
+  { code: 'uaecentral', name: 'uaecentral', displayName: '(Middle East) UAE Central' },
+  { code: 'uaenorth', name: 'uaenorth', displayName: '(Middle East) UAE North' },
+  // South America
+  { code: 'brazilsouth', name: 'brazilsouth', displayName: '(South America) Brazil South' },
+  { code: 'brazilsoutheast', name: 'brazilsoutheast', displayName: '(South America) Brazil Southeast' },
+  { code: 'brazilus', name: 'brazilus', displayName: '(South America) Brazil US' },
+  // US
+  { code: 'centralus', name: 'centralus', displayName: '(US) Central US' },
+  { code: 'centraluseuap', name: 'centraluseuap', displayName: '(US) Central US EUAP' },
+  { code: 'eastus', name: 'eastus', displayName: '(US) East US' },
+  { code: 'eastus2', name: 'eastus2', displayName: '(US) East US 2' },
+  { code: 'eastus2euap', name: 'eastus2euap', displayName: '(US) East US 2 EUAP' },
+  { code: 'eastusstg', name: 'eastusstg', displayName: '(US) East US STG' },
+  { code: 'northcentralus', name: 'northcentralus', displayName: '(US) North Central US' },
+  { code: 'southcentralus', name: 'southcentralus', displayName: '(US) South Central US' },
+  { code: 'southcentralusstg', name: 'southcentralusstg', displayName: '(US) South Central US STG' },
+  { code: 'westcentralus', name: 'westcentralus', displayName: '(US) West Central US' },
+  { code: 'westus', name: 'westus', displayName: '(US) West US' },
+  { code: 'westus2', name: 'westus2', displayName: '(US) West US 2' },
+  { code: 'westus3', name: 'westus3', displayName: '(US) West US 3' }
+].sort((a, b) => a.displayName.localeCompare(b.displayName));
 
 const AzurePriceExplorer = () => {
   const [prices, setPrices] = useState([]);
@@ -49,21 +111,39 @@ const AzurePriceExplorer = () => {
   const [categories, setCategories] = useState([]);
   const [selectedCategories, setSelectedCategories] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCurrency, setSelectedCurrency] = useState('USD');
-  const [selectedRegion, setSelectedRegion] = useState('westeurope');
+  const [selectedCurrency, setSelectedCurrency] = useState('SEK');
+  const [selectedRegions, setSelectedRegions] = useState(['swedencentral']);
   const [totalCount, setTotalCount] = useState(0);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
 
   const buildApiUrl = useCallback((skip = 0) => {
     const params = new URLSearchParams({
-      currency: selectedCurrency,
-      region: selectedRegion,
-      skip: skip.toString(),
-      top: '100'
+        currency: selectedCurrency,
+        skip: skip.toString(),
+        top: '100'
     });
 
+    // Create the filter for multiple regions
+    if (selectedRegions.length > 0) {
+        const regionFilter = selectedRegions
+            .map(region => `armRegionName eq '${region}'`)
+            .join(' or ');
+        params.append('$filter', `(${regionFilter})`);
+    }
+
     return `/api/prices?${params.toString()}`;
-  }, [selectedCurrency, selectedRegion]);
+  }, [selectedCurrency, selectedRegions]);
+
+  const handleRegionChange = (event) => {
+    const options = event.target.options;
+    const selectedValues = [];
+    for (let i = 0; i < options.length; i++) {
+        if (options[i].selected) {
+            selectedValues.push(options[i].value);
+        }
+    }
+    setSelectedRegions(selectedValues);
+  };
 
   const fetchPrices = useCallback(async (skip = 0, accumulate = false) => {
     try {
@@ -197,15 +277,17 @@ const AzurePriceExplorer = () => {
 
             {/* Region Selector */}
             <select
-              className="px-3 py-2 border rounded-md"
-              value={selectedRegion}
-              onChange={(e) => setSelectedRegion(e.target.value)}
+                multiple
+                size="5"
+                className="px-3 py-2 border rounded-md min-w-[300px]"
+                value={selectedRegions}
+                onChange={handleRegionChange}
             >
-              {REGIONS.map(region => (
-                <option key={region.code} value={region.code}>
-                  {region.name}
-                </option>
-              ))}
+                {REGIONS.map(region => (
+                    <option key={region.code} value={region.code}>
+                        {region.displayName}
+                    </option>
+                ))}
             </select>
 
             {/* Export Button */}
@@ -320,12 +402,12 @@ const AzurePriceExplorer = () => {
 
         {/* Results Count */}
         <CardFooter className="flex justify-between text-sm text-gray-500">
-          <div>
-            Showing {filteredPrices.length} of {totalCount} prices
-          </div>
-          <div>
-            Currency: {selectedCurrency} | Region: {selectedRegion}
-          </div>
+            <div>
+                Showing {filteredPrices.length} of {totalCount} prices
+            </div>
+            <div>
+                Currency: {selectedCurrency} | Regions: {selectedRegions.length}
+            </div>
         </CardFooter>
       </Card>
     </div>
