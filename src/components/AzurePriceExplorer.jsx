@@ -30,17 +30,23 @@ const AzurePriceExplorer = () => {
   useEffect(() => {
     const fetchPrices = async () => {
       try {
-        const response = await fetch('https://prices.azure.com/api/retail/prices');
-        if (!response.ok) throw new Error('Failed to fetch prices');
+        const response = await fetch('/api/prices');
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
         const data = await response.json();
+        console.log('API Response:', data); // For debugging
         
         setPrices(data.Items || []);
         
-        const uniqueCategories = [...new Set(data.Items.map(item => item.serviceFamily))];
+        const uniqueCategories = [...new Set((data.Items || []).map(item => item.serviceFamily))];
         setCategories(uniqueCategories);
         
         setLoading(false);
       } catch (err) {
+        console.error('Fetch error:', err);
         setError(err.message);
         setLoading(false);
       }
