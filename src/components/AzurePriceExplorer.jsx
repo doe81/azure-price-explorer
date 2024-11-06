@@ -183,7 +183,7 @@ const AzurePriceExplorer = () => {
     setLoading(true);
     setPrices([]);
     fetchPrices(0, false);
-  }, [selectedCurrency, selectedRegion, fetchPrices]);
+  }, [selectedCurrency, selectedRegions, fetchPrices]);
 
   const filteredPrices = prices.filter(price => {
     const matchesCategories = selectedCategories.length === 0 || 
@@ -227,7 +227,7 @@ const AzurePriceExplorer = () => {
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.download = `azure_prices_${selectedCurrency}_${selectedRegion}.csv`;
+    link.download = `azure_prices_${selectedCurrency}_${selectedRegions}.csv`;
     link.click();
   };
 
@@ -252,7 +252,7 @@ const AzurePriceExplorer = () => {
     const blob = new Blob([excelContent], { type: 'application/vnd.ms-excel' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.download = `azure_prices_${selectedCurrency}_${selectedRegion}.xls`;
+    link.download = `azure_prices_${selectedCurrency}_${selectedRegions}.xls`;
     link.click();
   };
 
