@@ -6,14 +6,14 @@ import {
   CardHeader,
   CardTitle,
   CardFooter,
-} from "@/components/ui/card";
+} from "../components/ui/card";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
-} from "@/components/ui/dropdown-menu";
-import { Button } from "@/components/ui/button";
+} from "../components/ui/dropdown-menu";
+import { Button } from "../components/ui/button";
 
 const AzurePriceExplorer = () => {
   const [prices, setPrices] = useState([]);

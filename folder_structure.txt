@@ -1,0 +1,41 @@
+¦   .gitignore
+¦   folder_structure.txt
+¦   LICENSE
+¦   package-lock.json
+¦   package.json
+¦   postcss.config.js
+¦   README.md
+¦   tailwind.config.js
+¦   
++---.github
+¦   +---workflows
+¦           azure-static-web-apps-gentle-field-028d59903.yml
+¦           
++---public
+¦       favicon.ico
+¦       index.html
+¦       logo192.png
+¦       logo512.png
+¦       manifest.json
+¦       robots.txt
+¦       
++---src
+    ¦   App.css
+    ¦   App.js
+    ¦   App.test.js
+    ¦   index.css
+    ¦   index.js
+    ¦   logo.svg
+    ¦   reportWebVitals.js
+    ¦   setupTests.js
+    ¦   
+    +---components
+    ¦   ¦   AzurePriceExplorer.jsx
+    ¦   ¦   
+    ¦   +---ui
+    ¦           button.jsx
+    ¦           card.jsx
+    ¦           
+    +---lib
+            utils.js
+            
