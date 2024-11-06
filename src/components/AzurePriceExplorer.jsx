@@ -142,6 +142,54 @@ const AzurePriceExplorer = () => {
     );
   };
 
+  // Add these export functions
+  const exportToCSV = (data) => {
+    const headers = ['Product', 'Category', 'SKU', 'Price', 'Unit'];
+    const csvContent = [
+      headers.join(','),
+      ...data.map(price => [
+        `"${price.productName}"`,
+        `"${price.serviceFamily}"`,
+        `"${price.skuName}"`,
+        `${price.retailPrice} ${selectedCurrency}`,
+        `"${price.unitOfMeasure}"`
+      ].join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `azure_prices_${selectedCurrency}_${selectedRegion}.csv`;
+    link.click();
+  };
+
+  const exportToExcel = (data) => {
+    const headers = ['Product', 'Category', 'SKU', 'Price', 'Unit'];
+    let excelContent = '<table>';
+    
+    // Add headers
+    excelContent += '<tr>' + headers.map(header => `<th>${header}</th>`).join('') + '</tr>';
+    
+    // Add data rows
+    data.forEach(price => {
+      excelContent += '<tr>';
+      excelContent += `<td>${price.productName}</td>`;
+      excelContent += `<td>${price.serviceFamily}</td>`;
+      excelContent += `<td>${price.skuName}</td>`;
+      excelContent += `<td>${price.retailPrice} ${selectedCurrency}</td>`;
+      excelContent += `<td>${price.unitOfMeasure}</td>`;
+      excelContent += '</tr>';
+    });
+    
+    excelContent += '</table>';
+    
+    const blob = new Blob([excelContent], { type: 'application/vnd.ms-excel' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `azure_prices_${selectedCurrency}_${selectedRegion}.xls`;
+    link.click();
+  };
+
   return (
     <div className="p-6">
       <Card className="mb-6">
