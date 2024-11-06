@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Search, Download, ChevronLeft, ChevronRight, Loader } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Search, Download, Loader } from 'lucide-react';
 import {
   Card,
   CardContent,
@@ -51,15 +51,10 @@ const AzurePriceExplorer = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCurrency, setSelectedCurrency] = useState('USD');
   const [selectedRegion, setSelectedRegion] = useState('westeurope');
-  
-  // Pagination states
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
   const [totalCount, setTotalCount] = useState(0);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
-  
-  const buildApiUrl = (skip = 0) => {
-    // Use relative URL to our API function
+
+  const buildApiUrl = useCallback((skip = 0) => {
     const params = new URLSearchParams({
       currency: selectedCurrency,
       region: selectedRegion,
@@ -68,9 +63,9 @@ const AzurePriceExplorer = () => {
     });
 
     return `/api/prices?${params.toString()}`;
-  };
+  }, [selectedCurrency, selectedRegion]);
 
-  const fetchPrices = async (skip = 0, accumulate = false) => {
+  const fetchPrices = useCallback(async (skip = 0, accumulate = false) => {
     try {
       setIsLoadingMore(true);
       const response = await fetch(buildApiUrl(skip));
@@ -81,7 +76,6 @@ const AzurePriceExplorer = () => {
       
       const data = await response.json();
       
-      // Update prices based on whether we're accumulating or starting fresh
       setPrices(prevPrices => {
         if (accumulate) {
           return [...prevPrices, ...data.Items];
@@ -89,7 +83,6 @@ const AzurePriceExplorer = () => {
         return data.Items || [];
       });
       
-      // Extract unique categories from the data
       if (!accumulate) {
         const uniqueCategories = [...new Set((data.Items || []).map(item => item.serviceFamily))];
         setCategories(uniqueCategories);
@@ -104,17 +97,14 @@ const AzurePriceExplorer = () => {
       setLoading(false);
       setIsLoadingMore(false);
     }
-  };
+  }, [buildApiUrl]);
 
-  // Initial load
   useEffect(() => {
     setLoading(true);
     setPrices([]);
-    setCurrentPage(1);
     fetchPrices(0, false);
-  }, [selectedCurrency, selectedRegion]);
+  }, [selectedCurrency, selectedRegion, fetchPrices]);
 
-  // Filter and search logic
   const filteredPrices = prices.filter(price => {
     const matchesCategories = selectedCategories.length === 0 || 
       selectedCategories.includes(price.serviceFamily);
@@ -127,7 +117,6 @@ const AzurePriceExplorer = () => {
     return matchesCategories && matchesSearch;
   });
 
-  // Load more data when scrolling near bottom
   const handleLoadMore = () => {
     if (!isLoadingMore && prices.length < totalCount) {
       fetchPrices(prices.length, true);
@@ -142,7 +131,6 @@ const AzurePriceExplorer = () => {
     );
   };
 
-  // Add these export functions
   const exportToCSV = (data) => {
     const headers = ['Product', 'Category', 'SKU', 'Price', 'Unit'];
     const csvContent = [
@@ -167,10 +155,8 @@ const AzurePriceExplorer = () => {
     const headers = ['Product', 'Category', 'SKU', 'Price', 'Unit'];
     let excelContent = '<table>';
     
-    // Add headers
     excelContent += '<tr>' + headers.map(header => `<th>${header}</th>`).join('') + '</tr>';
     
-    // Add data rows
     data.forEach(price => {
       excelContent += '<tr>';
       excelContent += `<td>${price.productName}</td>`;
