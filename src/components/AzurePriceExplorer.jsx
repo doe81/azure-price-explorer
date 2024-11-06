@@ -15,6 +15,27 @@ import {
 } from "../components/ui/dropdown-menu";
 import { Button } from "../components/ui/button";
 
+// Currency formatting configurations
+const CURRENCY_FORMATS = {
+  USD: { locale: 'en-US', currency: 'USD' },
+  EUR: { locale: 'de-DE', currency: 'EUR' },
+  AUD: { locale: 'en-AU', currency: 'AUD' },
+  BRL: { locale: 'pt-BR', currency: 'BRL' },
+  GBP: { locale: 'en-GB', currency: 'GBP' },
+  CAD: { locale: 'en-CA', currency: 'CAD' },
+  CNY: { locale: 'zh-CN', currency: 'CNY' },
+  DKK: { locale: 'da-DK', currency: 'DKK' },
+  INR: { locale: 'en-IN', currency: 'INR' },
+  JPY: { locale: 'ja-JP', currency: 'JPY' },
+  KRW: { locale: 'ko-KR', currency: 'KRW' },
+  NZD: { locale: 'en-NZ', currency: 'NZD' },
+  NOK: { locale: 'nb-NO', currency: 'NOK' },
+  RUB: { locale: 'ru-RU', currency: 'RUB' },
+  SEK: { locale: 'sv-SE', currency: 'SEK' },
+  CHF: { locale: 'de-CH', currency: 'CHF' },
+  TWD: { locale: 'zh-TW', currency: 'TWD' }
+};
+
 const CURRENCIES = [
   { code: 'USD', name: 'US Dollar' },
   { code: 'EUR', name: 'Euro' },
@@ -76,32 +97,7 @@ const REGIONS = [
   { code: 'switzerlandwest', name: 'switzerlandwest', displayName: '(Europe) Switzerland West' },
   { code: 'uksouth', name: 'uksouth', displayName: '(Europe) UK South' },
   { code: 'ukwest', name: 'ukwest', displayName: '(Europe) UK West' },
-  { code: 'westeurope', name: 'westeurope', displayName: '(Europe) West Europe' },
-  // Mexico
-  { code: 'mexicocentral', name: 'mexicocentral', displayName: '(Mexico) Mexico Central' },
-  // Middle East
-  { code: 'israelcentral', name: 'israelcentral', displayName: '(Middle East) Israel Central' },
-  { code: 'qatarcentral', name: 'qatarcentral', displayName: '(Middle East) Qatar Central' },
-  { code: 'uaecentral', name: 'uaecentral', displayName: '(Middle East) UAE Central' },
-  { code: 'uaenorth', name: 'uaenorth', displayName: '(Middle East) UAE North' },
-  // South America
-  { code: 'brazilsouth', name: 'brazilsouth', displayName: '(South America) Brazil South' },
-  { code: 'brazilsoutheast', name: 'brazilsoutheast', displayName: '(South America) Brazil Southeast' },
-  { code: 'brazilus', name: 'brazilus', displayName: '(South America) Brazil US' },
-  // US
-  { code: 'centralus', name: 'centralus', displayName: '(US) Central US' },
-  { code: 'centraluseuap', name: 'centraluseuap', displayName: '(US) Central US EUAP' },
-  { code: 'eastus', name: 'eastus', displayName: '(US) East US' },
-  { code: 'eastus2', name: 'eastus2', displayName: '(US) East US 2' },
-  { code: 'eastus2euap', name: 'eastus2euap', displayName: '(US) East US 2 EUAP' },
-  { code: 'eastusstg', name: 'eastusstg', displayName: '(US) East US STG' },
-  { code: 'northcentralus', name: 'northcentralus', displayName: '(US) North Central US' },
-  { code: 'southcentralus', name: 'southcentralus', displayName: '(US) South Central US' },
-  { code: 'southcentralusstg', name: 'southcentralusstg', displayName: '(US) South Central US STG' },
-  { code: 'westcentralus', name: 'westcentralus', displayName: '(US) West Central US' },
-  { code: 'westus', name: 'westus', displayName: '(US) West US' },
-  { code: 'westus2', name: 'westus2', displayName: '(US) West US 2' },
-  { code: 'westus3', name: 'westus3', displayName: '(US) West US 3' }
+  { code: 'westeurope', name: 'westeurope', displayName: '(Europe) West Europe' }
 ].sort((a, b) => a.displayName.localeCompare(b.displayName));
 
 const AzurePriceExplorer = () => {
@@ -115,145 +111,25 @@ const AzurePriceExplorer = () => {
   const [selectedRegions, setSelectedRegions] = useState(['swedencentral']);
   const [totalCount, setTotalCount] = useState(0);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [hoveredPrice, setHoveredPrice] = useState(null);
 
-  const buildApiUrl = useCallback((skip = 0) => {
-    const params = new URLSearchParams({
-        currency: selectedCurrency,
-        skip: skip.toString(),
-        top: '100'
-    });
+  // Format price according to currency locale
+  const formatPrice = (price, showFull = false) => {
+    const format = CURRENCY_FORMATS[selectedCurrency];
+    if (!format) return `${price} ${selectedCurrency}`;
 
-    // Create the filter for multiple regions
-    if (selectedRegions.length > 0) {
-        const regionFilter = selectedRegions
-            .map(region => `armRegionName eq '${region}'`)
-            .join(' or ');
-        params.append('$filter', `(${regionFilter})`);
-    }
-
-    return `/api/prices?${params.toString()}`;
-  }, [selectedCurrency, selectedRegions]);
-
-  const handleRegionChange = (event) => {
-    const options = event.target.options;
-    const selectedValues = [];
-    for (let i = 0; i < options.length; i++) {
-        if (options[i].selected) {
-            selectedValues.push(options[i].value);
-        }
-    }
-    setSelectedRegions(selectedValues);
-  };
-
-  const fetchPrices = useCallback(async (skip = 0, accumulate = false) => {
     try {
-      setIsLoadingMore(true);
-      const response = await fetch(buildApiUrl(skip));
+      const options = {
+        style: 'currency',
+        currency: format.currency,
+        minimumFractionDigits: showFull ? 6 : 2,
+        maximumFractionDigits: showFull ? 6 : 2
+      };
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const data = await response.json();
-      
-      setPrices(prevPrices => {
-        if (accumulate) {
-          return [...prevPrices, ...data.Items];
-        }
-        return data.Items || [];
-      });
-      
-      if (!accumulate) {
-        const uniqueCategories = [...new Set((data.Items || []).map(item => item.serviceFamily))];
-        setCategories(uniqueCategories);
-        setTotalCount(data.Count || 0);
-      }
-      
-      setError(null);
-    } catch (err) {
-      console.error('Fetch error:', err);
-      setError(err.message);
-    } finally {
-      setLoading(false);
-      setIsLoadingMore(false);
+      return new Intl.NumberFormat(format.locale, options).format(price);
+    } catch (e) {
+      return `${price} ${selectedCurrency}`;
     }
-  }, [buildApiUrl]);
-
-  useEffect(() => {
-    setLoading(true);
-    setPrices([]);
-    fetchPrices(0, false);
-  }, [selectedCurrency, selectedRegions, fetchPrices]);
-
-  const filteredPrices = prices.filter(price => {
-    const matchesCategories = selectedCategories.length === 0 || 
-      selectedCategories.includes(price.serviceFamily);
-      
-    const matchesSearch = price.productName.toLowerCase()
-      .includes(searchQuery.toLowerCase()) ||
-      price.serviceFamily.toLowerCase()
-      .includes(searchQuery.toLowerCase());
-      
-    return matchesCategories && matchesSearch;
-  });
-
-  const handleLoadMore = () => {
-    if (!isLoadingMore && prices.length < totalCount) {
-      fetchPrices(prices.length, true);
-    }
-  };
-
-  const toggleCategory = (category) => {
-    setSelectedCategories(prev => 
-      prev.includes(category)
-        ? prev.filter(c => c !== category)
-        : [...prev, category]
-    );
-  };
-
-  const exportToCSV = (data) => {
-    const headers = ['Product', 'Category', 'SKU', 'Price', 'Unit'];
-    const csvContent = [
-      headers.join(','),
-      ...data.map(price => [
-        `"${price.productName}"`,
-        `"${price.serviceFamily}"`,
-        `"${price.skuName}"`,
-        `${price.retailPrice} ${selectedCurrency}`,
-        `"${price.unitOfMeasure}"`
-      ].join(','))
-    ].join('\n');
-
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `azure_prices_${selectedCurrency}_${selectedRegions}.csv`;
-    link.click();
-  };
-
-  const exportToExcel = (data) => {
-    const headers = ['Product', 'Category', 'SKU', 'Price', 'Unit'];
-    let excelContent = '<table>';
-    
-    excelContent += '<tr>' + headers.map(header => `<th>${header}</th>`).join('') + '</tr>';
-    
-    data.forEach(price => {
-      excelContent += '<tr>';
-      excelContent += `<td>${price.productName}</td>`;
-      excelContent += `<td>${price.serviceFamily}</td>`;
-      excelContent += `<td>${price.skuName}</td>`;
-      excelContent += `<td>${price.retailPrice} ${selectedCurrency}</td>`;
-      excelContent += `<td>${price.unitOfMeasure}</td>`;
-      excelContent += '</tr>';
-    });
-    
-    excelContent += '</table>';
-    
-    const blob = new Blob([excelContent], { type: 'application/vnd.ms-excel' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `azure_prices_${selectedCurrency}_${selectedRegions}.xls`;
-    link.click();
   };
 
   return (
@@ -275,19 +151,39 @@ const AzurePriceExplorer = () => {
               ))}
             </select>
 
-            {/* Region Selector */}
+            {/* Enhanced Region Selector with Categories */}
             <select
-                multiple
-                size="5"
-                className="px-3 py-2 border rounded-md min-w-[300px]"
-                value={selectedRegions}
-                onChange={handleRegionChange}
+              multiple
+              size="5"
+              className="px-3 py-2 border rounded-md min-w-[300px]"
+              value={selectedRegions}
+              onChange={(e) => {
+                const options = e.target.options;
+                const values = [];
+                for (let i = 0; i < options.length; i++) {
+                  if (options[i].selected) {
+                    values.push(options[i].value);
+                  }
+                }
+                setSelectedRegions(values);
+              }}
             >
-                {REGIONS.map(region => (
+              {Object.entries(
+                REGIONS.reduce((acc, region) => {
+                  const category = region.displayName.match(/^\((.*?)\)/)?.[1] || 'Other';
+                  if (!acc[category]) acc[category] = [];
+                  acc[category].push(region);
+                  return acc;
+                }, {})
+              ).map(([category, regions]) => (
+                <optgroup key={category} label={category}>
+                  {regions.map(region => (
                     <option key={region.code} value={region.code}>
-                        {region.displayName}
+                      {region.displayName}
                     </option>
-                ))}
+                  ))}
+                </optgroup>
+              ))}
             </select>
 
             {/* Export Button */}
@@ -311,48 +207,9 @@ const AzurePriceExplorer = () => {
         </CardHeader>
 
         <CardContent>
-          {/* Search Bar */}
-          <div className="relative mb-6">
-            <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-500" />
-            <input
-              type="text"
-              placeholder="Search products..."
-              className="pl-8 pr-4 py-2 w-full border rounded-md"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
 
-          {/* Category Filters */}
-          <div className="mb-6">
-            <h3 className="text-lg font-medium mb-2">Categories</h3>
-            <div className="flex flex-wrap gap-2">
-              {categories.map(category => (
-                <button
-                  key={category}
-                  onClick={() => toggleCategory(category)}
-                  className={`px-3 py-1 rounded-full text-sm ${
-                    selectedCategories.includes(category)
-                      ? 'bg-blue-500 text-white'
-                      : 'bg-gray-200 text-gray-700'
-                  }`}
-                >
-                  {category}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Loading State */}
-          {loading ? (
-            <div className="flex items-center justify-center p-8">
-              <Loader className="h-8 w-8 animate-spin" />
-              <span className="ml-2">Loading prices...</span>
-            </div>
-          ) : error ? (
-            <div className="text-red-500 p-4">Error: {error}</div>
-          ) : (
-            /* Price Table */
+          {/* Enhanced Price Table with Formatted Prices */}
+          {!loading && !error && (
             <div className="overflow-x-auto">
               <table className="w-full border-collapse">
                 <thead>
@@ -370,7 +227,16 @@ const AzurePriceExplorer = () => {
                       <td className="p-2 border">{price.productName}</td>
                       <td className="p-2 border">{price.serviceFamily}</td>
                       <td className="p-2 border">{price.skuName}</td>
-                      <td className="p-2 border">{price.retailPrice} {selectedCurrency}</td>
+                      <td 
+                        className="p-2 border cursor-help"
+                        onMouseEnter={() => setHoveredPrice(index)}
+                        onMouseLeave={() => setHoveredPrice(null)}
+                        title={formatPrice(price.retailPrice, true)}
+                      >
+                        {hoveredPrice === index 
+                          ? formatPrice(price.retailPrice, true)
+                          : formatPrice(price.retailPrice)}
+                      </td>
                       <td className="p-2 border">{price.unitOfMeasure}</td>
                     </tr>
                   ))}
@@ -379,35 +245,17 @@ const AzurePriceExplorer = () => {
             </div>
           )}
         </CardContent>
-        
-        {/* Load More Button */}
-        {!loading && prices.length < totalCount && (
-          <CardFooter className="flex justify-center">
-            <Button
-              variant="outline"
-              onClick={handleLoadMore}
-              disabled={isLoadingMore}
-            >
-              {isLoadingMore ? (
-                <>
-                  <Loader className="h-4 w-4 mr-2 animate-spin" />
-                  Loading...
-                </>
-              ) : (
-                'Load More'
-              )}
-            </Button>
-          </CardFooter>
-        )}
 
-        {/* Results Count */}
+        {/* Results Count with Selected Regions */}
         <CardFooter className="flex justify-between text-sm text-gray-500">
-            <div>
-                Showing {filteredPrices.length} of {totalCount} prices
-            </div>
-            <div>
-                Currency: {selectedCurrency} | Regions: {selectedRegions.length}
-            </div>
+          <div>
+            Showing {filteredPrices.length} of {totalCount} prices
+          </div>
+          <div>
+            Selected Regions: {selectedRegions.map(code => 
+              REGIONS.find(r => r.code === code)?.displayName
+            ).join(', ')}
+          </div>
         </CardFooter>
       </Card>
     </div>
