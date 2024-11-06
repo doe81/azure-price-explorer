@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Search, Download, Loader } from 'lucide-react';
+import { Download } from 'lucide-react';
 import {
   Card,
   CardContent,
@@ -104,13 +104,10 @@ const AzurePriceExplorer = () => {
   const [prices, setPrices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [categories, setCategories] = useState([]);
-  const [selectedCategories, setSelectedCategories] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCurrency, setSelectedCurrency] = useState('SEK');
   const [selectedRegions, setSelectedRegions] = useState(['swedencentral']);
   const [totalCount, setTotalCount] = useState(0);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [hoveredPrice, setHoveredPrice] = useState(null);
 
   const buildApiUrl = useCallback((skip = 0) => {
@@ -132,7 +129,6 @@ const AzurePriceExplorer = () => {
 
   const fetchPrices = useCallback(async (skip = 0, accumulate = false) => {
     try {
-      setIsLoadingMore(true);
       const response = await fetch(buildApiUrl(skip));
 
       if (!response.ok) {
@@ -148,19 +144,13 @@ const AzurePriceExplorer = () => {
         return data.Items || [];
       });
       
-      if (!accumulate) {
-        const uniqueCategories = [...new Set((data.Items || []).map(item => item.serviceFamily))];
-        setCategories(uniqueCategories);
-        setTotalCount(data.Count || 0);
-      }
-      
+      setTotalCount(data.Count || 0);
       setError(null);
     } catch (err) {
       console.error('Fetch error:', err);
       setError(err.message);
     } finally {
       setLoading(false);
-      setIsLoadingMore(false);
     }
   }, [buildApiUrl]);
 
@@ -170,20 +160,36 @@ const AzurePriceExplorer = () => {
     fetchPrices(0, false);
   }, [selectedCurrency, selectedRegions, fetchPrices]);
 
+  // Format price according to currency locale
+  const formatPrice = (price, showFull = false) => {
+    const format = CURRENCY_FORMATS[selectedCurrency];
+    if (!format) return `${price} ${selectedCurrency}`;
+
+    try {
+      const options = {
+        style: 'currency',
+        currency: format.currency,
+        minimumFractionDigits: showFull ? 6 : 2,
+        maximumFractionDigits: showFull ? 6 : 2
+      };
+
+      return new Intl.NumberFormat(format.locale, options).format(price);
+    } catch (e) {
+      return `${price} ${selectedCurrency}`;
+    }
+  };
+
   // Add the filtered prices computation
   const filteredPrices = prices.filter(price => {
-    const matchesCategories = selectedCategories.length === 0 || 
-      selectedCategories.includes(price.serviceFamily);
-      
-    const matchesSearch = price.productName.toLowerCase()
-      .includes(searchQuery.toLowerCase()) ||
-      price.serviceFamily.toLowerCase()
-      .includes(searchQuery.toLowerCase());
-      
-    return matchesCategories && matchesSearch;
+    if (!searchQuery) return true;
+    
+    const searchLower = searchQuery.toLowerCase();
+    return price.productName.toLowerCase().includes(searchLower) ||
+           price.serviceFamily.toLowerCase().includes(searchLower) ||
+           price.skuName.toLowerCase().includes(searchLower);
   });
 
-  // Add the export functions
+  // Export functions
   const exportToCSV = (data) => {
     const headers = ['Product', 'Category', 'SKU', 'Price', 'Unit'];
     const csvContent = [
@@ -229,31 +235,21 @@ const AzurePriceExplorer = () => {
     link.click();
   };
 
-  // Format price according to currency locale
-  const formatPrice = (price, showFull = false) => {
-    const format = CURRENCY_FORMATS[selectedCurrency];
-    if (!format) return `${price} ${selectedCurrency}`;
-
-    try {
-      const options = {
-        style: 'currency',
-        currency: format.currency,
-        minimumFractionDigits: showFull ? 6 : 2,
-        maximumFractionDigits: showFull ? 6 : 2
-      };
-
-      return new Intl.NumberFormat(format.locale, options).format(price);
-    } catch (e) {
-      return `${price} ${selectedCurrency}`;
-    }
-  };
-
   return (
     <div className="p-6">
       <Card className="mb-6">
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Azure Price Explorer</CardTitle>
           <div className="flex gap-4">
+            {/* Search Input */}
+            <input
+              type="text"
+              placeholder="Search products..."
+              className="px-3 py-2 border rounded-md"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+            
             {/* Currency Selector */}
             <select
               className="px-3 py-2 border rounded-md"
@@ -267,7 +263,7 @@ const AzurePriceExplorer = () => {
               ))}
             </select>
 
-            {/* Enhanced Region Selector with Categories */}
+            {/* Region Selector */}
             <select
               multiple
               size="5"
@@ -323,9 +319,13 @@ const AzurePriceExplorer = () => {
         </CardHeader>
 
         <CardContent>
+          {error && (
+            <div className="text-red-500 mb-4">{error}</div>
+          )}
 
-          {/* Enhanced Price Table with Formatted Prices */}
-          {!loading && !error && (
+          {loading ? (
+            <div className="text-center py-4">Loading prices...</div>
+          ) : (
             <div className="overflow-x-auto">
               <table className="w-full border-collapse">
                 <thead>
@@ -362,7 +362,6 @@ const AzurePriceExplorer = () => {
           )}
         </CardContent>
 
-        {/* Results Count with Selected Regions */}
         <CardFooter className="flex justify-between text-sm text-gray-500">
           <div>
             Showing {filteredPrices.length} of {totalCount} prices
