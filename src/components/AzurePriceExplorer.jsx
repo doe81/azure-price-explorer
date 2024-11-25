@@ -134,16 +134,16 @@ const AzurePriceExplorer = () => {
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
+
       const data = await response.json();
-      
+
       setPrices(prevPrices => {
         if (accumulate) {
           return [...prevPrices, ...data.Items];
         }
         return data.Items || [];
       });
-      
+
       setTotalCount(data.Count || 0);
       setError(null);
     } catch (err) {
@@ -182,11 +182,11 @@ const AzurePriceExplorer = () => {
   // Add the filtered prices computation
   const filteredPrices = prices.filter(price => {
     if (!searchQuery) return true;
-    
+
     const searchLower = searchQuery.toLowerCase();
     return price.productName.toLowerCase().includes(searchLower) ||
-           price.serviceFamily.toLowerCase().includes(searchLower) ||
-           price.skuName.toLowerCase().includes(searchLower);
+      price.serviceFamily.toLowerCase().includes(searchLower) ||
+      price.skuName.toLowerCase().includes(searchLower);
   });
 
   // Export functions
@@ -213,9 +213,9 @@ const AzurePriceExplorer = () => {
   const exportToExcel = (data) => {
     const headers = ['Product', 'Category', 'SKU', 'Price', 'Unit'];
     let excelContent = '<table>';
-    
+
     excelContent += '<tr>' + headers.map(header => `<th>${header}</th>`).join('') + '</tr>';
-    
+
     data.forEach(price => {
       excelContent += '<tr>';
       excelContent += `<td>${price.productName.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</td>`;
@@ -225,9 +225,9 @@ const AzurePriceExplorer = () => {
       excelContent += `<td>${price.unitOfMeasure.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</td>`;
       excelContent += '</tr>';
     });
-    
+
     excelContent += '</table>';
-    
+
     const blob = new Blob([excelContent], { type: 'application/vnd.ms-excel' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
@@ -249,7 +249,7 @@ const AzurePriceExplorer = () => {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
-            
+
             {/* Currency Selector */}
             <select
               className="px-3 py-2 border rounded-md"
@@ -343,13 +343,13 @@ const AzurePriceExplorer = () => {
                       <td className="p-2 border">{price.productName}</td>
                       <td className="p-2 border">{price.serviceFamily}</td>
                       <td className="p-2 border">{price.skuName}</td>
-                      <td 
+                      <td
                         className="p-2 border cursor-help"
                         onMouseEnter={() => setHoveredPrice(index)}
                         onMouseLeave={() => setHoveredPrice(null)}
                         title={formatPrice(price.retailPrice, true)}
                       >
-                        {hoveredPrice === index 
+                        {hoveredPrice === index
                           ? formatPrice(price.retailPrice, true)
                           : formatPrice(price.retailPrice)}
                       </td>
@@ -367,7 +367,7 @@ const AzurePriceExplorer = () => {
             Showing {filteredPrices.length} of {totalCount} prices
           </div>
           <div>
-            Selected Regions: {selectedRegions.map(code => 
+            Selected Regions: {selectedRegions.map(code =>
               REGIONS.find(r => r.code === code)?.displayName
             ).join(', ')}
           </div>
